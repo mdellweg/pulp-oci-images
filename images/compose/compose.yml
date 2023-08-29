@@ -1,9 +1,9 @@
-version: '3'
+# This file is intended as a starting point. Before using it, make a copy and adjust at least the passwords.
+---
+version: '3.7'
 services:
   postgres:
     image: "docker.io/library/postgres:13"
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_USER: pulp
       POSTGRES_PASSWORD: password
@@ -13,6 +13,8 @@ services:
     volumes:
       - "pg_data:/var/lib/postgresql/data"
       - "./assets/postgres/passwd:/etc/passwd:Z"
+    networks:
+      - pulp_internal
     restart: always
     healthcheck:
       test: pg_isready -U pulp
@@ -24,6 +26,8 @@ services:
     image: "docker.io/library/redis:latest"
     volumes:
       - "redis_data:/data"
+    networks:
+      - pulp_internal
     restart: always
     healthcheck:
       test: redis-cli ping
@@ -48,7 +52,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      migration_service: 
+      migration_service:
         condition: service_completed_successfully
     volumes:
       - "./assets/settings.py:/etc/pulp/settings.py:z"
@@ -83,6 +87,8 @@ services:
     volumes:
       - "./assets/bin/nginx.sh:/usr/bin/nginx.sh:Z"
       - "./assets/nginx/nginx.conf.template:/etc/opt/rh/rh-nginx116/nginx/nginx.conf.template:Z"
+    networks:
+      - pulp_internal
     restart: always
 
   pulp_api:
@@ -107,6 +113,8 @@ services:
       - "./assets/settings.py:/etc/pulp/settings.py:z"
       - "./assets/certs:/etc/pulp/certs:z"
       - "pulp:/var/lib/pulp"
+    networks:
+      - pulp_internal
     restart: always
     healthcheck:
       test: readyz.py /pulp/api/v3/status/
@@ -132,6 +140,8 @@ services:
       - "./assets/settings.py:/etc/pulp/settings.py:z"
       - "./assets/certs:/etc/pulp/certs:z"
       - "pulp:/var/lib/pulp"
+    networks:
+      - pulp_internal
     restart: always
     healthcheck:
       test: readyz.py /pulp/content/
@@ -156,7 +166,12 @@ services:
       - "./assets/settings.py:/etc/pulp/settings.py:z"
       - "./assets/certs:/etc/pulp/certs:z"
       - "pulp:/var/lib/pulp"
+    networks:
+      - pulp_internal
     restart: always
+
+networks:
+  pulp_internal:
 
 volumes:
   pulp:
